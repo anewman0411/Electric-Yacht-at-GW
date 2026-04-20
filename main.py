@@ -6,17 +6,20 @@ import adafruit_gps
 import math
 import ulab.numpy as numpy
 import digitalio
-import adafruit_character_lcd.character_lcd as character_lcd
+import adafruit_character_lcd.character_lcd_i2c as character_lcd
 
-
-i2c = busio.I2C(board.GP3, board.GP2) # gets board.SCL and board.SDA
-lcdi2c = busio.I2C(board.GP12, board.GP13) # gets SCL and SDA for lcd
 RX = board.GP1
 TX = board.GP0
 
+
+i2c_bus = busio.I2C(board.GP3, board.GP2) # gets board.SCL and board.SDA
+RX = board.GP13
+TX = board.GP12
+lcd1_columns = 16
+lcd1_rows = 2
+
 '''spi = busio.SPI(board.GP8, MOSI=board.GP10, MISO=board.GP11)
 cs = digitalio.DigitalInOut(board.GP12)'''
-lcd = LCD(I2CPCF8574Interface(lcdi2c, 0x28), num_rows=2, num_cols=16) #creates LCD object
 
 import adafruit_sdcard as sdkid
 import storage
@@ -24,6 +27,7 @@ import storage
 '''sdcard = sdkid.SDCard(spi, cs)
 vfs = storage.VfsFat(sdcard)
 storage.mount(vfs, "/sd")'''
+
 
 uart = busio.UART(TX, RX, baudrate=9600, timeout=30, receiver_buffer_size=256)
 gps = adafruit_gps.GPS(uart, debug=False)
@@ -34,16 +38,19 @@ uart = busio.UART(TX, RX, baudrate=115200, timeout=30, receiver_buffer_size=256)
 gps = adafruit_gps.GPS(uart, debug=False)
 
 
-while not i2c.try_lock(): ## locks sensor before scanning
+while not i2c_bus.try_lock(): ## locks sensor before scanning
     pass
 
 # print addresses found once
-print("I2C addresses found:", [hex(device_address) for device_address in i2c.scan()])
+print("I2C addresses found:", [hex(device_address) for device_address in i2c_bus.scan()])
 
-i2c.unlock() ## unlock sensor once done scannin
+i2c_bus.unlock() ## unlock sensor once done scanning
 
-sensor_accelerometer = adafruit_bno055.BNO055_I2C(i2c)
-print("Sensor check")
+lcd1 = character_lcd.Character_LCD_I2C(i2c_bus, lcd1_columns, lcd1_rows)
+lcd.color = [100, 0, 0]
+lcd.message = "Hello\nCircuitPython"
+
+sensor_accelerometer = adafruit_bno055.BNO055_I2C(i2c_bno)
 
 gps.send_command(b"PMTK314,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0")
 time.sleep(1)
